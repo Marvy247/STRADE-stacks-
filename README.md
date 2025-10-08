@@ -82,3 +82,6 @@ Strade uses a modular smart contract architecture for flexibility and upgradabil
 3. Connect your Stacks wallet to interact with the marketplace
 
 Detailed usage instructions for buyers and sellers can be found in our [User Guide](./docs/USER_GUIDE.md).
+
+post 1 = https://x.com/DavidMarvyy/status/1975626084432675267
+post 2 = https://x.com/DavidMarvyy/status/1975629395613401494

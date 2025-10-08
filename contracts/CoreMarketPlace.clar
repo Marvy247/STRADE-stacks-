@@ -1,43 +1,55 @@
-;; CoreMarketPlace: Manages listings and purchases for the Strade decentralized marketplace
+;; CoreMarketPlace Contract
+;; This contract manages the creation, updating, and purchasing of listings in the Strade decentralized marketplace.
+;; It handles the core logic for marketplace interactions, including listing management and purchase fulfillment.
 
-;; Constants
-(define-constant CONTRACT_OWNER tx-sender)
-(define-constant ERR_NOT_AUTHORIZED (err u100))
-(define-constant ERR_LISTING_NOT_FOUND (err u101))
-(define-constant ERR_INVALID_PRICE (err u102))
-(define-constant ERR_INVALID_SELLER (err u103))
-(define-constant ERR_INSUFFICIENT_BALANCE (err u104))
-(define-constant ERR_LISTING_EXPIRED (err u105))
-(define-constant ERR_INVALID_STATUS (err u106))
-(define-constant ERR_NOT_SELLER (err u107))
-(define-constant ERR_ALREADY_PURCHASED (err u108))
-(define-constant ERR_INVALID_INPUT (err u109))
-(define-constant ERR_INVALID_DURATION (err u110))
-(define-constant ERR_INVALID_LISTING_ID (err u111))
-(define-constant MAX_LISTING_DURATION u52560) ;; Max duration of 1 year (assuming 10-minute block times)
+;; --- Constants ---
+;; Defines immutable values used throughout the contract for error handling and configuration.
 
-;; Data Maps
+(define-constant CONTRACT_OWNER tx-sender) ;; Sets the contract deployer as the owner.
+(define-constant ERR_NOT_AUTHORIZED (err u100)) ;; Error for unauthorized actions.
+(define-constant ERR_LISTING_NOT_FOUND (err u101)) ;; Error when a listing cannot be found.
+(define-constant ERR_INVALID_PRICE (err u102)) ;; Error for invalid listing prices (e.g., zero or negative).
+(define-constant ERR_INVALID_SELLER (err u103)) ;; Error for invalid seller principals.
+(define-constant ERR_INSUFFICIENT_BALANCE (err u104)) ;; Error when a buyer has insufficient funds.
+(define-constant ERR_LISTING_EXPIRED (err u105)) ;; Error for expired listings.
+(define-constant ERR_INVALID_STATUS (err u106)) ;; Error for invalid listing statuses.
+(define-constant ERR_NOT_SELLER (err u107)) ;; Error when a user is not the seller of a listing.
+(define-constant ERR_ALREADY_PURCHASED (err u108)) ;; Error for listings that have already been sold.
+(define-constant ERR_INVALID_INPUT (err u109)) ;; Error for invalid input parameters.
+(define-constant ERR_INVALID_DURATION (err u110)) ;; Error for invalid listing durations.
+(define-constant ERR_INVALID_LISTING_ID (err u111)) ;; Error for invalid listing IDs.
+(define-constant MAX_LISTING_DURATION u52560) ;; Maximum duration of a listing (approximately 1 year).
+
+;; --- Data Maps ---
+;; Defines the data structures used to store marketplace information.
+
 (define-map Listings
   { listing-id: uint }
   {
-    seller: principal,
-    name: (string-utf8 64),
-    description: (string-utf8 256),
-    price: uint,
-    status: (string-ascii 20),
-    created-at: uint,
-    expires-at: uint
+    seller: principal, ;; The principal of the seller.
+    name: (string-utf8 64), ;; The name of the listing.
+    description: (string-utf8 256), ;; A description of the item.
+    price: uint, ;; The price of the listing in micro-STX.
+    status: (string-ascii 20), ;; The current status of the listing (e.g., "active", "sold", "cancelled").
+    created-at: uint, ;; The block height at which the listing was created.
+    expires-at: uint ;; The block height at which the listing expires.
   }
 )
 
-;; Variables
-(define-data-var last-listing-id uint u0)
+;; --- Variables ---
+;; Defines mutable variables for tracking the contract's state.
 
-;; Private Functions
+(define-data-var last-listing-id uint u0) ;; Tracks the ID of the last created listing.
+
+;; --- Private Functions ---
+;; Helper functions intended for internal use by the contract.
+
+;; Checks if a given price is valid (greater than zero).
 (define-private (is-valid-price (price uint))
   (> price u0)
 )
 
+;; Checks if a seller principal is valid (not the sender or the contract itself).
 (define-private (is-valid-seller (seller principal))
   (and 
     (not (is-eq seller tx-sender))
@@ -45,18 +57,22 @@
   )
 )
 
+;; Checks if a string is within the specified length constraints.
 (define-private (is-valid-string (str (string-utf8 256)) (max-len uint))
   (and (>= (len str) u1) (<= (len str) max-len))
 )
 
+;; Checks if a listing duration is valid.
 (define-private (is-valid-duration (duration uint))
   (and (> duration u0) (<= duration MAX_LISTING_DURATION))
 )
 
+;; Checks if a listing ID is valid.
 (define-private (is-valid-listing-id (id uint))
   (<= id (var-get last-listing-id))
 )
 
+;; Increments and returns the next listing ID.
 (define-private (increment-listing-id)
   (let 
     (
@@ -67,7 +83,15 @@
   )
 )
 
-;; Public Functions
+;; --- Public Functions ---
+;; Functions that can be called by any user.
+
+;; Creates a new listing in the marketplace.
+;; @param name: The name of the listing.
+;; @param description: A description of the item.
+;; @param price: The price of the listing in micro-STX.
+;; @param duration: The duration of the listing in blocks.
+;; @returns (ok uint): The ID of the newly created listing.
 (define-public (create-listing (name (string-utf8 64)) (description (string-utf8 256)) (price uint) (duration uint))
   (let
     (
@@ -95,6 +119,11 @@
   )
 )
 
+;; Updates an existing listing.
+;; @param listing-id: The ID of the listing to update.
+;; @param new-price: The new price for the listing.
+;; @param new-description: The new description for the listing.
+;; @returns (ok bool): True if the update is successful.
 (define-public (update-listing (listing-id uint) (new-price uint) (new-description (string-utf8 256)))
   (begin
     (asserts! (is-valid-listing-id listing-id) (err ERR_INVALID_LISTING_ID))
@@ -121,6 +150,9 @@
   )
 )
 
+;; Cancels a listing.
+;; @param listing-id: The ID of the listing to cancel.
+;; @returns (ok bool): True if the cancellation is successful.
 (define-public (cancel-listing (listing-id uint))
   (begin
     (asserts! (is-valid-listing-id listing-id) (err ERR_INVALID_LISTING_ID))
@@ -140,6 +172,9 @@
   )
 )
 
+;; Purchases a listing.
+;; @param listing-id: The ID of the listing to purchase.
+;; @returns (ok bool): True if the purchase is successful.
 (define-public (purchase-listing (listing-id uint))
   (begin
     (asserts! (is-valid-listing-id listing-id) (err ERR_INVALID_LISTING_ID))
@@ -165,7 +200,12 @@
   )
 )
 
-;; Read-only Functions
+;; --- Read-Only Functions ---
+;; Functions for retrieving data from the contract without making state changes.
+
+;; Retrieves a listing by its ID.
+;; @param listing-id: The ID of the listing to retrieve.
+;; @returns (optional {<listing-data>}): The listing data or none if not found.
 (define-read-only (get-listing (listing-id uint))
   (if (is-valid-listing-id listing-id)
     (map-get? Listings { listing-id: listing-id })
@@ -173,11 +213,14 @@
   )
 )
 
+;; Retrieves the ID of the last created listing.
+;; @returns (ok uint): The last listing ID.
 (define-read-only (get-last-listing-id)
   (ok (var-get last-listing-id))
 )
 
-;; Initialize contract
+;; --- Contract Initialization ---
+;; Initializes the contract upon deployment.
 (begin
   (print "CoreMarketPlace contract initialized")
   (ok true)

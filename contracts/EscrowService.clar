@@ -1,34 +1,44 @@
-;; EscrowService: Manages secure transactions between buyers and sellers
+;; EscrowService Contract
+;; This contract provides a secure escrow service for transactions between buyers and sellers.
+;; It holds funds until the buyer releases them to the seller or a dispute is resolved.
 
-;; Define constants
-(define-constant CONTRACT_OWNER tx-sender)
-(define-constant ERR_NOT_AUTHORIZED (err u100))
-(define-constant ERR_ESCROW_NOT_FOUND (err u101))
-(define-constant ERR_ALREADY_RELEASED (err u102))
-(define-constant ERR_TRANSFER_FAILED (err u103))
-(define-constant ERR_INVALID_ESCROW_ID (err u104))
-(define-constant ERR_INVALID_AMOUNT (err u105))
-(define-constant ERR_INVALID_SELLER (err u106))
-(define-constant ERR_ESCROW_EXPIRED (err u107))
-(define-constant ESCROW_DURATION u1008) ;; ~7 days in blocks (assuming 10-minute block times)
+;; --- Constants ---
+;; Defines immutable values used throughout the contract for error handling and configuration.
 
-;; Define data maps
+(define-constant CONTRACT_OWNER tx-sender) ;; Sets the contract deployer as the owner.
+(define-constant ERR_NOT_AUTHORIZED (err u100)) ;; Error for unauthorized actions.
+(define-constant ERR_ESCROW_NOT_FOUND (err u101)) ;; Error when an escrow cannot be found.
+(define-constant ERR_ALREADY_RELEASED (err u102)) ;; Error if funds have already been released.
+(define-constant ERR_TRANSFER_FAILED (err u103)) ;; Error for failed STX transfers.
+(define-constant ERR_INVALID_ESCROW_ID (err u104)) ;; Error for invalid escrow IDs.
+(define-constant ERR_INVALID_AMOUNT (err u105)) ;; Error for invalid transaction amounts.
+(define-constant ERR_INVALID_SELLER (err u106)) ;; Error for invalid seller principals.
+(define-constant ERR_ESCROW_EXPIRED (err u107)) ;; Error for expired escrows.
+(define-constant ESCROW_DURATION u1008) ;; The duration of the escrow in blocks (approximately 7 days).
+
+;; --- Data Maps ---
+;; Defines the data structures used to store escrow information.
+
 (define-map Escrows
   { escrow-id: uint }
   {
-    buyer: principal,
-    seller: principal,
-    amount: uint,
-    state: (string-ascii 10),
-    created-at: uint,
-    expires-at: uint
+    buyer: principal, ;; The principal of the buyer.
+    seller: principal, ;; The principal of the seller.
+    amount: uint, ;; The amount of STX held in escrow.
+    state: (string-ascii 10), ;; The current state of the escrow (e.g., "locked", "released", "refunded").
+    created-at: uint, ;; The block height at which the escrow was created.
+    expires-at: uint ;; The block height at which the escrow expires.
   }
 )
 
-;; Define variables
-(define-data-var last-escrow-id uint u0)
+;; --- Variables ---
+;; Defines mutable variables for tracking the contract's state.
 
-;; Helper functions
+(define-data-var last-escrow-id uint u0) ;; Tracks the ID of the last created escrow.
+
+;; --- Helper functions ---
+
+;; Checks if a seller principal is valid.
 (define-private (is-valid-seller (seller principal))
   (and 
     (not (is-eq seller tx-sender))
@@ -36,11 +46,17 @@
   )
 )
 
+;; Checks if an escrow ID is valid.
 (define-private (is-valid-escrow-id (escrow-id uint))
   (<= escrow-id (var-get last-escrow-id))
 )
 
-;; Create a new escrow
+;; --- Public Functions ---
+
+;; Creates a new escrow.
+;; @param seller: The principal of the seller.
+;; @param amount: The amount of STX to hold in escrow.
+;; @returns (ok uint): The ID of the newly created escrow.
 (define-public (create-escrow (seller principal) (amount uint))
   (let
     (
@@ -72,7 +88,9 @@
   )
 )
 
-;; Release funds to the seller
+;; Releases funds to the seller.
+;; @param escrow-id: The ID of the escrow to release.
+;; @returns (ok bool): True if the funds are released successfully.
 (define-public (release-funds (escrow-id uint))
   (begin
     (asserts! (is-valid-escrow-id escrow-id) (err ERR_INVALID_ESCROW_ID))
@@ -101,7 +119,9 @@
   )
 )
 
-;; Refund buyer
+;; Refunds the buyer.
+;; @param escrow-id: The ID of the escrow to refund.
+;; @returns (ok bool): True if the refund is successful.
 (define-public (refund-buyer (escrow-id uint))
   (begin
     (asserts! (is-valid-escrow-id escrow-id) (err ERR_INVALID_ESCROW_ID))
@@ -129,7 +149,11 @@
   )
 )
 
-;; Get escrow details
+;; --- Read-Only Functions ---
+
+;; Retrieves escrow details by ID.
+;; @param escrow-id: The ID of the escrow to retrieve.
+;; @returns (ok {<escrow-data>}): The escrow data or an error if not found.
 (define-read-only (get-escrow (escrow-id uint))
   (begin
     (asserts! (is-valid-escrow-id escrow-id) (err ERR_INVALID_ESCROW_ID))
@@ -140,7 +164,8 @@
   )
 )
 
-;; Get last escrow ID
+;; Retrieves the ID of the last created escrow.
+;; @returns (ok uint): The last escrow ID.
 (define-read-only (get-last-escrow-id)
   (ok (var-get last-escrow-id))
 )

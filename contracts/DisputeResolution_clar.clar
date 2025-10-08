@@ -1,56 +1,69 @@
-;; DisputeResolution: Handles disputes and arbitration in the Strade marketplace
+;; DisputeResolution Contract
+;; This contract handles the dispute resolution process for the Strade marketplace.
+;; It allows users to raise disputes, arbitrators to vote on them, and resolves disputes based on the outcome.
 
-;; Constants
-(define-constant CONTRACT_OWNER tx-sender)
-(define-constant ERR_NOT_AUTHORIZED (err u100))
-(define-constant ERR_DISPUTE_NOT_FOUND (err u101))
-(define-constant ERR_INVALID_STATE (err u102))
-(define-constant ERR_NOT_ARBITRATOR (err u103))
-(define-constant ERR_ALREADY_VOTED (err u104))
-(define-constant ERR_VOTING_CLOSED (err u105))
-(define-constant ERR_INSUFFICIENT_VOTES (err u106))
-(define-constant ERR_INVALID_VOTE (err u107))
-(define-constant ERR_NOT_INVOLVED_PARTY (err u108))
-(define-constant ERR_INVALID_ESCROW_ID (err u109))
-(define-constant ERR_INVALID_REASON (err u110))
-(define-constant ERR_INVALID_DISPUTE_ID (err u111))
-(define-constant ERR_INVALID_REWARD (err u112))
-(define-constant ERR_INVALID_PRINCIPAL (err u113))
-(define-constant VOTING_PERIOD u144)
-(define-constant MIN_VOTES_REQUIRED u3)
+;; --- Constants ---
+;; Defines immutable values used throughout the contract for error handling and configuration.
 
-;; Data Maps
+(define-constant CONTRACT_OWNER tx-sender) ;; Sets the contract deployer as the owner.
+(define-constant ERR_NOT_AUTHORIZED (err u100)) ;; Error for unauthorized actions.
+(define-constant ERR_DISPUTE_NOT_FOUND (err u101)) ;; Error when a dispute cannot be found.
+(define-constant ERR_INVALID_STATE (err u102)) ;; Error for invalid dispute states.
+(define-constant ERR_NOT_ARBITRATOR (err u103)) ;; Error when a user is not an authorized arbitrator.
+(define-constant ERR_ALREADY_VOTED (err u104)) ;; Error if an arbitrator has already voted.
+(define-constant ERR_VOTING_CLOSED (err u105)) ;; Error when voting on a dispute is closed.
+(define-constant ERR_INSUFFICIENT_VOTES (err u106)) ;; Error if there are not enough votes to resolve a dispute.
+(define-constant ERR_INVALID_VOTE (err u107)) ;; Error for invalid vote values.
+(define-constant ERR_NOT_INVOLVED_PARTY (err u108)) ;; Error when a user is not a party to the dispute.
+(define-constant ERR_INVALID_ESCROW_ID (err u109)) ;; Error for invalid escrow IDs.
+(define-constant ERR_INVALID_REASON (err u110)) ;; Error for invalid dispute reasons.
+(define-constant ERR_INVALID_DISPUTE_ID (err u111)) ;; Error for invalid dispute IDs.
+(define-constant ERR_INVALID_REWARD (err u112)) ;; Error for invalid arbitrator rewards.
+(define-constant ERR_INVALID_PRINCIPAL (err u113)) ;; Error for invalid principal addresses.
+(define-constant VOTING_PERIOD u144) ;; The duration of the voting period in blocks (approximately 24 hours).
+(define-constant MIN_VOTES_REQUIRED u3) ;; The minimum number of votes required to resolve a dispute.
+
+;; --- Data Maps ---
+;; Defines the data structures used to store dispute and arbitrator information.
+
 (define-map Disputes
   { dispute-id: uint }
   {
-    escrow-id: uint,
-    initiator: principal,
-    counterparty: principal,
-    reason: (string-utf8 256),
-    status: (string-ascii 20),
-    created-at: uint,
-    votes-for: uint,
-    votes-against: uint,
-    resolution: (optional (string-ascii 20))
+    escrow-id: uint, ;; The ID of the associated escrow.
+    initiator: principal, ;; The principal who initiated the dispute.
+    counterparty: principal, ;; The other party in the dispute.
+    reason: (string-utf8 256), ;; The reason for the dispute.
+    status: (string-ascii 20), ;; The current status of the dispute (e.g., "open", "resolved").
+    created-at: uint, ;; The block height at which the dispute was created.
+    votes-for: uint, ;; The number of votes in favor of the initiator.
+    votes-against: uint, ;; The number of votes against the initiator.
+    resolution: (optional (string-ascii 20)) ;; The resolution of the dispute.
   }
 )
 
-(define-map Arbitrators principal bool)
-(define-map ArbitratorVotes { dispute-id: uint, arbitrator: principal } bool)
+(define-map Arbitrators principal bool) ;; Stores the set of authorized arbitrators.
+(define-map ArbitratorVotes { dispute-id: uint, arbitrator: principal } bool) ;; Tracks votes cast by arbitrators.
 
-;; Variables
-(define-data-var last-dispute-id uint u0)
-(define-data-var arbitrator-reward uint u100) ;; Reward amount for voting
+;; --- Variables ---
+;; Defines mutable variables for tracking the contract's state.
 
-;; Private Functions
+(define-data-var last-dispute-id uint u0) ;; Tracks the ID of the last created dispute.
+(define-data-var arbitrator-reward uint u100) ;; The reward amount for arbitrators who vote on a dispute.
+
+;; --- Private Functions ---
+;; Helper functions intended for internal use by the contract.
+
+;; Checks if a given user is an authorized arbitrator.
 (define-private (is-arbitrator (user principal))
   (default-to false (map-get? Arbitrators user))
 )
 
+;; Checks if an arbitrator has already voted on a specific dispute.
 (define-private (has-voted (dispute-id uint) (arbitrator principal))
   (is-some (map-get? ArbitratorVotes { dispute-id: dispute-id, arbitrator: arbitrator }))
 )
 
+;; Updates the vote count for a dispute.
 (define-private (update-vote-count (dispute-id uint) (vote bool))
   (match (map-get? Disputes { dispute-id: dispute-id })
     dispute (let
@@ -68,19 +81,29 @@
   )
 )
 
+;; Checks if an escrow ID is valid.
 (define-private (is-valid-escrow-id (escrow-id uint))
   (> escrow-id u0)
 )
 
+;; Checks if a dispute reason is valid.
 (define-private (is-valid-reason (reason (string-utf8 256)))
   (and (> (len reason) u0) (<= (len reason) u256))
 )
 
+;; Checks if a dispute ID is valid.
 (define-private (is-valid-dispute-id (dispute-id uint))
   (<= dispute-id (var-get last-dispute-id))
 )
 
-;; Public Functions
+;; --- Public Functions ---
+;; Functions that can be called by any user.
+
+;; Raises a new dispute.
+;; @param escrow-id: The ID of the escrow to dispute.
+;; @param counterparty: The other party in the dispute.
+;; @param reason: The reason for the dispute.
+;; @returns (ok uint): The ID of the newly created dispute.
 (define-public (raise-dispute (escrow-id uint) (counterparty principal) (reason (string-utf8 256)))
   (let
     (
@@ -109,6 +132,10 @@
   )
 )
 
+;; Allows an arbitrator to vote on a dispute.
+;; @param dispute-id: The ID of the dispute to vote on.
+;; @param vote: The arbitrator's vote (true for initiator, false for counterparty).
+;; @returns (ok bool): True if the vote is successful.
 (define-public (vote-on-dispute (dispute-id uint) (vote bool))
   (let
     (
@@ -126,6 +153,9 @@
   )
 )
 
+;; Resolves a dispute based on the votes.
+;; @param dispute-id: The ID of the dispute to resolve.
+;; @returns (ok (string-ascii 20)): The resolution of the dispute.
 (define-public (resolve-dispute (dispute-id uint))
   (let
     (
@@ -151,6 +181,9 @@
   )
 )
 
+;; Adds a new arbitrator.
+;; @param arbitrator: The principal of the new arbitrator.
+;; @returns (ok bool): True if the arbitrator is added successfully.
 (define-public (add-arbitrator (arbitrator principal))
   (begin
     (asserts! (is-eq tx-sender CONTRACT_OWNER) (err ERR_NOT_AUTHORIZED))
@@ -161,6 +194,9 @@
   )
 )
 
+;; Removes an arbitrator.
+;; @param arbitrator: The principal of the arbitrator to remove.
+;; @returns (ok bool): True if the arbitrator is removed successfully.
 (define-public (remove-arbitrator (arbitrator principal))
   (begin
     (asserts! (is-eq tx-sender CONTRACT_OWNER) (err ERR_NOT_AUTHORIZED))
@@ -171,6 +207,9 @@
   )
 )
 
+;; Sets the reward for arbitrators.
+;; @param new-reward: The new reward amount.
+;; @returns (ok bool): True if the reward is set successfully.
 (define-public (set-arbitrator-reward (new-reward uint))
   (begin
     (asserts! (is-eq tx-sender CONTRACT_OWNER) (err ERR_NOT_AUTHORIZED))
@@ -181,24 +220,36 @@
   )
 )
 
-;; Read-only Functions
+;; --- Read-Only Functions ---
+;; Functions for retrieving data from the contract without making state changes.
+
+;; Retrieves a dispute by its ID.
+;; @param dispute-id: The ID of the dispute to retrieve.
+;; @returns (optional {<dispute-data>}): The dispute data or none if not found.
 (define-read-only (get-dispute (dispute-id uint))
   (map-get? Disputes { dispute-id: dispute-id })
 )
 
+;; Retrieves the ID of the last created dispute.
+;; @returns (ok uint): The last dispute ID.
 (define-read-only (get-last-dispute-id)
   (ok (var-get last-dispute-id))
 )
 
+;; Retrieves the arbitrator reward amount.
+;; @returns (ok uint): The arbitrator reward amount.
 (define-read-only (get-arbitrator-reward)
   (ok (var-get arbitrator-reward))
 )
 
+;; Checks if a user is an authorized arbitrator.
+;; @param user: The principal to check.
+;; @returns (ok bool): True if the user is an arbitrator.
 (define-read-only (is-user-arbitrator (user principal))
   (ok (is-arbitrator user))
 )
 
-;; Helper function for principal validation
+;; --- Helper function for principal validation ---
 (define-private (is-valid-principal (principal principal))
   (and 
     (not (is-eq principal CONTRACT_OWNER))
@@ -206,7 +257,8 @@
   )
 )
 
-;; Initialize contract
+;; --- Contract Initialization ---
+;; Initializes the contract upon deployment.
 (begin
   (print "DisputeResolution contract initialized")
   (ok true)
