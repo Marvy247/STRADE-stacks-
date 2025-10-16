@@ -6,7 +6,18 @@ export const network = STACKS_TESTNET;
 export const appConfig = new AppConfig(['store_write', 'publish_data']);
 export const userSession = new UserSession({ appConfig });
 
-export const contractAddress = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
+export const contractAddress = 'ST2WFP8G2CTAZWQBRQT2BWBPTH3NB341NMQJGD0KM';
+
+// Contract addresses for deployed contracts
+export const CONTRACTS = {
+  CoreMarketPlace: `${contractAddress}.CoreMarketPlace`,
+  EscrowService: `${contractAddress}.EscrowService`,
+  UserProfile: `${contractAddress}.UserProfile`,
+  DisputeResolution: `${contractAddress}.DisputeResolution_clar`,
+  Token: `${contractAddress}.token`,
+};
+
+// Default contract for marketplace operations
 export const contractName = 'CoreMarketPlace';
 
 export interface Listing {

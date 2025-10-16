@@ -37,6 +37,13 @@ export default defineConfig({
         // add or override options
       },
     },
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/frontend/**', // Exclude frontend tests from root config
+      '**/.{idea,git,cache,output,temp}/**',
+      '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*'
+    ],
   },
 });
 
