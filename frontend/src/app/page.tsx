@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ListingCard from '@/components/ListingCard';
 import CreateListingForm from '@/components/CreateListingForm';
-import { getListings, userSession, Listing } from '@/lib/stacks';
+import { getListings, userSession, Listing, contractAddress, contractName } from '@/lib/stacks';
 import { openContractCall } from '@stacks/connect';
 import { uintCV, stringUtf8CV } from '@stacks/transactions';
 
@@ -52,15 +52,15 @@ export default function Home() {
     ];
 
     const options = {
-      contractAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-      contractName: 'CoreMarketPlace',
+      contractAddress,
+      contractName,
       functionName: 'create-listing',
       functionArgs,
       appDetails: {
         name: 'Strade',
         icon: window.location.origin + '/favicon.ico',
       },
-      onFinish: (data: any) => {
+      onFinish: (data: { txId: string; stacksTransaction: unknown }) => {
         console.log('Transaction finished:', data);
         // Reload listings after successful creation
         setTimeout(loadListings, 3000);
@@ -79,15 +79,15 @@ export default function Home() {
     const functionArgs = [uintCV(listingId)];
 
     const options = {
-      contractAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-      contractName: 'CoreMarketPlace',
+      contractAddress,
+      contractName,
       functionName: 'purchase-listing',
       functionArgs,
       appDetails: {
         name: 'Strade',
         icon: window.location.origin + '/favicon.ico',
       },
-      onFinish: (data: any) => {
+      onFinish: (data: { txId: string; stacksTransaction: unknown }) => {
         console.log('Purchase transaction finished:', data);
         // Reload listings after successful purchase
         setTimeout(loadListings, 3000);

@@ -83,5 +83,6 @@ Strade uses a modular smart contract architecture for flexibility and upgradabil
 
 Detailed usage instructions for buyers and sellers can be found in our [User Guide](./docs/USER_GUIDE.md).
 
-post 1 = https://x.com/DavidMarvyy/status/1975626084432675267
-post 2 = https://x.com/DavidMarvyy/status/1975629395613401494
+post 1 = https://x.com/DavidMarvyy/status/1978875809151492437
+post 2 = https://x.com/DavidMarvyy/status/1978878793742778729
+post 3 = https://x.com/DavidMarvyy/status/1978880338169328012

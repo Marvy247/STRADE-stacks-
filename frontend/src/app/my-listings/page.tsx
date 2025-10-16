@@ -17,7 +17,7 @@ export default function MyListings() {
   const router = useRouter();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userAddress, setUserAddress] = useState<string>('');
+
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   useEffect(() => {
@@ -28,8 +28,8 @@ export default function MyListings() {
     }
 
     const userData = userSession.loadUserData();
-    setUserAddress(userData.profile.stxAddress.testnet);
-    loadMyListings(userData.profile.stxAddress.testnet);
+    const address = userData.profile.stxAddress.testnet;
+    loadMyListings(address);
   }, [router]);
 
   const loadMyListings = async (address: string) => {
@@ -67,15 +67,15 @@ export default function MyListings() {
     return true;
   });
 
-  const StatCard = ({ 
-    icon: Icon, 
-    label, 
-    value, 
-    color 
-  }: { 
-    icon: any; 
-    label: string; 
-    value: number; 
+  const StatCard = ({
+    icon: Icon,
+    label,
+    value,
+    color
+  }: {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: number;
     color: string;
   }) => (
     <Card className="hover:shadow-md transition-shadow">
