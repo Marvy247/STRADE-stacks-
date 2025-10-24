@@ -1,4 +1,23 @@
-# Strade: Decentralized Marketplace on Stacks
+# Strade
+
+## Testing
+
+This project includes comprehensive unit tests for the CoreMarketPlace contract using Vitest and Clarinet SDK. The tests cover various scenarios including listing creation, updates, cancellations, and purchases.
+
+To run the tests:
+```bash
+npm test
+```
+
+For test reports with coverage and costs:
+```bash
+npm run test:report
+```
+
+For watch mode:
+```bash
+npm run test:watch
+```
 
 Strade is a decentralized marketplace built on the Stacks blockchain, allowing users to buy and sell goods and services securely using smart contracts.
 
@@ -82,7 +101,3 @@ Strade uses a modular smart contract architecture for flexibility and upgradabil
 3. Connect your Stacks wallet to interact with the marketplace
 
 Detailed usage instructions for buyers and sellers can be found in our [User Guide](./docs/USER_GUIDE.md).
-
-post 1 = https://x.com/DavidMarvyy/status/1978875809151492437
-post 2 = https://x.com/DavidMarvyy/status/1978878793742778729
-post 3 = https://x.com/DavidMarvyy/status/1978880338169328012
