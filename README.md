@@ -2,7 +2,7 @@
 
 ## Testing
 
-This project includes comprehensive unit tests for the CoreMarketPlace contract using Vitest and Clarinet SDK. The tests cover various scenarios including listing creation, updates, cancellations, and purchases.
+This project includes comprehensive unit tests and fuzz tests for the CoreMarketPlace contract using Vitest, Clarinet SDK, and fast-check for property-based testing. The tests cover various scenarios including listing creation, updates, cancellations, and purchases, with fuzz testing to ensure robustness against random inputs.
 
 To run the tests:
 ```bash
